@@ -1,50 +1,110 @@
--- MySQL dump 10.13  Distrib 8.0.43, for Win64 (x86_64)
---
--- Host: 127.0.0.1    Database: blinkit_analysis
--- ------------------------------------------------------
--- Server version	8.0.43
+SELECT * FROM sales_data;
 
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!50503 SET NAMES utf8 */;
-/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
-/*!40103 SET TIME_ZONE='+00:00' */;
-/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
-/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
-/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
-/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+-- Sum of total sales in millions
+SELECT CAST(SUM(`Total Sales`)/1000000 AS DECIMAL(10,2)) AS Total_sales_millions FROM sales_data;
 
---
--- Table structure for table `sales_data`
---
 
-DROP TABLE IF EXISTS `sales_data`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `sales_data` (
-  `Item Fat Content` text,
-  `Item Identifier` text,
-  `Item Type` text,
-  `Outlet Establishment Year` int DEFAULT NULL,
-  `Outlet Identifier` text,
-  `Outlet Location Type` text,
-  `Outlet Size` text,
-  `Outlet Type` text,
-  `Item Visibility` double DEFAULT NULL,
-  `Item Weight` double DEFAULT NULL,
-  `Total Sales` double DEFAULT NULL,
-  `Rating` int DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
+-- Sum of total sales in millions for low fat
+SELECT CAST(SUM(`Total Sales`)/1000000 AS DECIMAL(10,2)) AS Total_sales_millions FROM sales_data
+WHERE `Item Fat Content` = 'Low Fat';
 
-/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
-/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
-/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
-/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-01-06 18:14:15
+-- Sum of total sales in millions for a paarticular establishment year
+SELECT CAST(SUM(`Total Sales`)/1000000 AS DECIMAL(10,2)) AS Total_sales_millions FROM sales_data
+WHERE `Outlet Establishment Year` = 2012;
+
+
+-- Avg number of total sales
+SELECT CAST(AVG(`Total Sales`) AS DECIMAL(10,0)) AS avg_sales FROM sales_data;
+
+
+-- Total number of items
+SELECT COUNT(*) AS no_of_items FROM sales_data;
+
+
+-- Avg rating
+SELECT CAST(AVG(`Rating`) AS DECIMAL(10,2)) AS avg_rating from sales_data;
+
+
+-- Total sales per fat category
+SELECT `Item Fat Content`, 
+		CONCAT(CAST(SUM(`Total Sales`)/1000 AS DECIMAL(10,2)),'K') AS Total_sales_thousands,
+        CAST(AVG(`Total Sales`) AS DECIMAL(10,0)) AS avg_sales ,
+        COUNT(*) AS no_of_items,
+        CAST(AVG(`Rating`) AS DECIMAL(10,2)) AS avg_rating
+FROM sales_data
+GROUP BY `Item Fat Content`
+ORDER BY Total_sales_thousands DESC;
+
+
+-- Total sales by item type
+SELECT `Item Type`, 
+		CAST(SUM(`Total Sales`) AS DECIMAL(10,2)) AS total_sales,
+        CAST(AVG(`Total Sales`) AS DECIMAL(10,0)) AS avg_sales ,
+        COUNT(*) AS no_of_items,
+        CAST(AVG(`Rating`) AS DECIMAL(10,2)) AS avg_rating
+FROM sales_data
+GROUP BY `Item Type`
+ORDER BY `total_sales`
+LIMIT 5;
+
+
+-- Sales by outlet
+SELECT 
+	`Outlet Location Type`,
+    SUM(CASE WHEN `Item Fat Content` = 'Low Fat' THEN `Total Sales` ELSE 0 END) AS Low_Fat,
+    SUM(CASE WHEN `Item Fat Content` = 'Regular' THEN `Total Sales` ELSE 0 END) AS Regular
+FROM
+    sales_data 
+GROUP BY
+    `Outlet Location Type`
+ORDER BY
+    `Outlet Location Type`;
+    
+    
+-- Sales by outlet establishment
+Select `Outlet Establishment Year`,
+		CAST(SUM(`Total Sales`) AS DECIMAL(10,2)) AS total_sales,
+        CAST(AVG(`Total Sales`) AS DECIMAL(10,0)) AS avg_sales ,
+        COUNT(*) AS no_of_items,
+        CAST(AVG(`Rating`) AS DECIMAL(10,2)) AS avg_rating
+FROM sales_data
+GROUP BY `Outlet Establishment Year`
+ORDER BY `Outlet Establishment Year`;
+
+
+-- Percentage of sales by outlet size
+SELECT `Outlet Size`,
+		CAST(SUM(`Total Sales`) AS DECIMAL(10,2)) AS total_sales,
+        CAST((SUM(`Total Sales`) * 100.0/ SUM(SUM(`Total Sales`)) OVER())AS DECIMAL(10,2)) AS sales_percentage
+FROM sales_data
+GROUP BY `Outlet Size`
+ORDER BY total_sales DESC;
+
+
+-- Sales by outlet location
+Select `Outlet Location Type`,
+		CAST(SUM(`Total Sales`) AS DECIMAL(10,2)) AS total_sales,
+        CAST((SUM(`Total Sales`) * 100.0/ SUM(SUM(`Total Sales`)) OVER())AS DECIMAL(10,2)) AS sales_percentage,
+        CAST(AVG(`Total Sales`) AS DECIMAL(10,0)) AS avg_sales ,
+        COUNT(*) AS no_of_items,
+        CAST(AVG(`Rating`) AS DECIMAL(10,2)) AS avg_rating
+FROM sales_data
+GROUP BY `Outlet Location Type`
+ORDER BY total_sales DESC;
+
+-- Sales by outlet type
+Select `Outlet Type`,
+		CAST(SUM(`Total Sales`) AS DECIMAL(10,2)) AS total_sales,
+        CAST((SUM(`Total Sales`) * 100.0/ SUM(SUM(`Total Sales`)) OVER())AS DECIMAL(10,2)) AS sales_percentage,
+        CAST(AVG(`Total Sales`) AS DECIMAL(10,0)) AS avg_sales ,
+        COUNT(*) AS no_of_items,
+        CAST(AVG(`Rating`) AS DECIMAL(10,2)) AS avg_rating
+FROM sales_data
+GROUP BY `Outlet Type`
+ORDER BY total_sales DESC;
+
+DESCRIBE sales_data;
+
+ALTER TABLE sales_data RENAME COLUMN `ï»¿Item Fat Content` TO `Item Fat Content`;
+
